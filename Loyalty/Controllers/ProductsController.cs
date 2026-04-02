@@ -1,12 +1,13 @@
+using Loyalty.Data;
+using Loyalty.Models;
+using Loyalty.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ConnectDB.Data;
-using ConnectDB.Models;
 
-namespace ConnectDB.Controllers;
+namespace Loyalty.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -16,107 +17,95 @@ public class ProductsController : ControllerBase
         _context = context;
     }
 
-    // Lấy danh sách sản phẩm (có thể lọc theo chuyên mục hoặc tìm kiếm)
-    // GET: api/Products
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] int? categoryId, [FromQuery] string? search)
+    public async Task<IActionResult> GetAllProducts()
     {
-        var query = _context.Products.Include(p => p.Category).AsQueryable();
-
-        if (categoryId.HasValue)
-        {
-            query = query.Where(p => p.CategoryId == categoryId.Value);
-        }
-
-        if (!string.IsNullOrEmpty(search))
-        {
-            query = query.Where(p => p.Name.Contains(search) || p.Sku.Contains(search));
-        }
-
-        return await query.ToListAsync();
+        var products = await _context.Products
+            .Include(p => p.Metadata)
+            .Include(p => p.Inventory)
+            .Select(p => new {
+                p.Id,
+                p.Sku,
+                p.Name,
+                p.Category,
+                p.BasePrice,
+                IsVirtual = p.IsVirtual,
+                InventoryQuantity = p.Inventory != null ? p.Inventory.Quantity : 0,
+                Metadata = p.Metadata != null ? p.Metadata.AttributesJson : null
+            })
+            .ToListAsync();
+            
+        return Ok(products);
     }
 
-    // Lấy chi tiết một sản phẩm
-    // GET: api/Products/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
-    {
-        var product = await _context.Products.Include(p => p.Category).FirstOrDefaultAsync(p => p.Id == id);
-
-        if (product == null)
-        {
-            return NotFound();
-        }
-
-        return product;
-    }
-
-    // Tạo sản phẩm mới
-    // POST: api/Products
     [HttpPost]
-    public async Task<ActionResult<Product>> PostProduct(Product product)
+    public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest req)
     {
-        product.CreatedAt = DateTime.UtcNow;
-        product.UpdatedAt = DateTime.UtcNow;
-        
+        var product = new Product
+        {
+            Sku = req.Sku,
+            Name = req.Name,
+            UoM = req.UoM,
+            BasePrice = req.BasePrice,
+            Category = req.Category,
+            IsVirtual = req.IsVirtual,
+            Inventory = new Inventory { Quantity = 0, BatchDate = DateTime.UtcNow }
+        };
+
+        if (!string.IsNullOrEmpty(req.MetadataJson))
+        {
+            product.Metadata = new ProductMetadata { AttributesJson = req.MetadataJson };
+        }
+
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        return Ok(new { ProductId = product.Id, Message = "Created successfully" });
     }
 
-    // Cập nhật sản phẩm
-    // PUT: api/Products/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProduct(int id, Product product)
+    public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateProductRequest req)
     {
-        if (id != product.Id)
+        var product = await _context.Products.Include(p => p.Metadata).FirstOrDefaultAsync(p => p.Id == id);
+        if (product == null) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
+
+        product.Sku = req.Sku;
+        product.Name = req.Name;
+        product.UoM = req.UoM;
+        product.BasePrice = req.BasePrice;
+        product.Category = req.Category;
+        product.IsVirtual = req.IsVirtual;
+
+        if (!string.IsNullOrEmpty(req.MetadataJson))
         {
-            return BadRequest();
+            if (product.Metadata == null) product.Metadata = new ProductMetadata { AttributesJson = req.MetadataJson };
+            else product.Metadata.AttributesJson = req.MetadataJson;
         }
 
-        product.UpdatedAt = DateTime.UtcNow;
-        _context.Entry(product).State = EntityState.Modified;
-        _context.Entry(product).Property(x => x.CreatedAt).IsModified = false;
-
-        try
-        {
-            await _context.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!ProductExists(id))
-            {
-                return NotFound();
-            }
-            else
-            {
-                throw;
-            }
-        }
-
-        return NoContent();
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Sản phẩm đã được cập nhật (PUT)" });
     }
 
-    // Xoá sản phẩm
-    // DELETE: api/Products/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(int id)
+    public async Task<IActionResult> DeleteProduct(Guid id)
     {
         var product = await _context.Products.FindAsync(id);
-        if (product == null)
-        {
-            return NotFound();
-        }
+        if (product == null) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
 
         _context.Products.Remove(product);
         await _context.SaveChangesAsync();
-
-        return NoContent();
+        return Ok(new { Message = "Sản phẩm đã bị xóa (DELETE)" });
     }
 
-    private bool ProductExists(int id)
+    [HttpGet("expiring")]
+    public async Task<IActionResult> GetExpiringProducts()
     {
-        return _context.Products.Any(e => e.Id == id);
+        var warningDate = DateTime.UtcNow.AddMonths(6);
+        var res = await _context.Inventories
+            .Include(i => i.Product)
+            .Where(i => i.ExpiryDate <= warningDate && i.Quantity > 0)
+            .Select(i => new { i.Product.Sku, i.Product.Name, i.ExpiryDate, i.Quantity })
+            .ToListAsync();
+            
+        return Ok(res);
     }
 }
