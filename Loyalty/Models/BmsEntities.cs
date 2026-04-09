@@ -18,6 +18,7 @@ public class Product
     public decimal BasePrice { get; set; }
     [Required, StringLength(100)]
     public string Category { get; set; } // Sách, Dụng cụ học tập, Sách luyện đề, v.v.
+    public string? ImageUrl { get; set; }
     public bool IsVirtual { get; set; } = false;
 
     public ProductMetadata Metadata { get; set; }
@@ -110,4 +111,18 @@ public class LoyaltyTransaction
 
     [ForeignKey("CustomerId")]
     public Customer Customer { get; set; }
+}
+
+public class AppUser
+{
+    [Key]
+    public Guid Id { get; set; } = Guid.NewGuid();
+    [Required, StringLength(100)]
+    public string Username { get; set; }
+    [Required, StringLength(255)]
+    public string Password { get; set; } // Hashed or plain (for simplicity, plain in test)
+    [Required, StringLength(50)]
+    public string Role { get; set; } // Admin, Staff, Customer
+    public string FullName { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

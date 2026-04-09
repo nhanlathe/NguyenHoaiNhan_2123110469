@@ -14,6 +14,14 @@ public class AppDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<LoyaltyProfile> LoyaltyProfiles { get; set; }
     public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
+    public DbSet<AppUser> AppUsers { get; set; }
+
+    // ECommerce extensions
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<Review> Reviews { get; set; }
+    public DbSet<Coupon> Coupons { get; set; }
+    public DbSet<Wishlist> Wishlists { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

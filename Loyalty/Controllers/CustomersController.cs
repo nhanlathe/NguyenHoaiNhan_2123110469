@@ -1,8 +1,5 @@
-using Loyalty.Data;
-using Loyalty.Models;
-using Loyalty.Utils;
+using Loyalty.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Loyalty.Controllers;
 
@@ -10,65 +7,41 @@ namespace Loyalty.Controllers;
 [Route("api/[controller]")]
 public class CustomersController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly ICustomerRepository _repository;
 
-    public CustomersController(AppDbContext context)
+    public CustomersController(ICustomerRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllCustomers()
     {
-        var customers = await _context.Customers.Include(c => c.Profile).ToListAsync();
-        return Ok(customers.Select(c => new {
-            c.Id,
-            PhoneDecrypted = EncryptionUtil.Decrypt(c.PhoneEncrypted), // Giải mã khi hiển thị Admin
-            c.Persona,
-            Tier = c.Profile?.Tier,
-            PointBalance = c.Profile?.PointBalance,
-            c.CreatedAt
-        }));
+        var customers = await _repository.GetAllCustomersAsync();
+        return Ok(customers);
     }
 
     [HttpPost("seed-test-customer")]
     public async Task<IActionResult> SeedTestCustomer([FromQuery] string phone = "0961234567")
     {
-        var existing = _context.Customers.AsEnumerable().FirstOrDefault(c => c.PhoneEncrypted.SequenceEqual(EncryptionUtil.Encrypt(phone)));
-        if (existing != null) return Ok("Khách hàng đã tồn tại");
-
-        var customer = new Customer
-        {
-            PhoneEncrypted = EncryptionUtil.Encrypt(phone),
-            EmailEncrypted = EncryptionUtil.Encrypt("test@mail.com"),
-            Persona = "School",
-            Profile = new LoyaltyProfile { Tier = "Gold", PointBalance = 0, EStamps = 0, TotalSpent = 0 }
-        };
-
-        _context.Customers.Add(customer);
-        await _context.SaveChangesAsync();
+        var result = await _repository.SeedTestCustomerAsync(phone);
+        if (!result) return Ok("Khách hàng đã tồn tại");
         return Ok($"Khách hàng {phone} đã được seed thành công với bản ghi Gold Tier!");
     }
 
     [HttpPut("{id}/tier")]
     public async Task<IActionResult> UpdateTier(Guid id, [FromQuery] string newTier)
     {
-        var profile = await _context.LoyaltyProfiles.FirstOrDefaultAsync(p => p.CustomerId == id);
-        if (profile == null) return NotFound(new { Error = "Không tìm thấy hồ sơ Loyalty" });
-        
-        profile.Tier = newTier;
-        await _context.SaveChangesAsync();
+        var result = await _repository.UpdateTierAsync(id, newTier);
+        if (!result) return NotFound(new { Error = "Không tìm thấy hồ sơ Loyalty" });
         return Ok(new { Message = $"Đã nâng/hạ hạng (PUT) thành {newTier}" });
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCustomer(Guid id)
     {
-        var customer = await _context.Customers.FindAsync(id);
-        if (customer == null) return NotFound(new { Error = "Không tìm thấy khách hàng" });
-        
-        _context.Customers.Remove(customer); // Sẽ tự động Cascade xoá Profile dựa theo Entity config
-        await _context.SaveChangesAsync();
+        var result = await _repository.DeleteCustomerAsync(id);
+        if (!result) return NotFound(new { Error = "Không tìm thấy khách hàng" });
         return Ok(new { Message = "Đã xoá khách hàng hoàn toàn khỏi cơ sở (DELETE)" });
     }
 }

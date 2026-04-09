@@ -29,7 +29,7 @@ public class OrderService
         }
     }
 
-    public (decimal PointsEarned, decimal TotalDiscount) CalculateBenefits(List<OrderItem> items, LoyaltyProfile profile)
+    public (decimal PointsEarned, decimal TotalDiscount) CalculateBenefits(List<OrderItemDto> items, LoyaltyProfile profile)
     {
         int currentMonth = DateTime.Now.Month;
         decimal totalDiscount = 0;
