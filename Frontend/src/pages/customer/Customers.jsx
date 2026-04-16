@@ -26,8 +26,7 @@ export default function Customers() {
     }
   };
 
-  const updateTier = async (id, currentTier) => {
-    const newTier = prompt("Phong tước hiệu mới (Member, Silver, Gold, Diamond):", currentTier);
+  const handleTierChange = async (id, newTier) => {
     if (newTier) {
       try {
         await apiClient.put(`/Customers/${id}/tier?newTier=${newTier}`);
@@ -67,7 +66,17 @@ export default function Customers() {
               </td>
               <td style={{ fontWeight: 'bold' }}>{c.pointBalance}</td>
               <td>
-                <button className="btn btn-outline" onClick={() => updateTier(c.id, c.tier)}>Phong Tước</button>
+                <select 
+                  className="input-field" 
+                  style={{ padding: '0.3rem', width: 'auto' }}
+                  value={c.tier || 'Member'} 
+                  onChange={(e) => handleTierChange(c.id, e.target.value)}
+                >
+                  <option value="Member">Khách Thường (Member)</option>
+                  <option value="Silver">Bạc (Silver)</option>
+                  <option value="Gold">Vàng (Gold)</option>
+                  <option value="Diamond">Kim Cương (Diamond)</option>
+                </select>
               </td>
             </tr>
           ))}

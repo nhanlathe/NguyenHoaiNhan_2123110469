@@ -91,7 +91,7 @@ export default function Products() {
               <td>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {p.imageUrl ? (
-                    <img src={`http://localhost:5245${p.imageUrl}`} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                    <img src={p.imageUrl.startsWith('http') ? p.imageUrl : `http://localhost:5245${p.imageUrl}`} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
                   ) : (
                     <div style={{ width: '40px', height: '40px', background: '#e2d5c3', borderRadius: '4px' }}></div>
                   )}
@@ -114,7 +114,7 @@ export default function Products() {
 
       {showModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(62, 39, 35, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', backgroundColor: '#fffbf0' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', backgroundColor: '#fffbf0', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2>{editId ? 'Biên Tập Sách' : 'Ghi Danh Sách Mới'}</h2>
             <form onSubmit={handleSubmit} style={{ marginTop: '1.5rem' }}>
               <input className="input-field" placeholder="Mã SKU (Vd: BOOK-01)" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} required />
@@ -127,7 +127,7 @@ export default function Products() {
                 <input type="file" accept="image/*" onChange={handleImageUpload} />
                 {formData.imageUrl && (
                   <div style={{ marginTop: '0.5rem' }}>
-                    <img src={`http://localhost:5245${formData.imageUrl}`} alt="preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
+                    <img src={formData.imageUrl.startsWith('http') ? formData.imageUrl : `http://localhost:5245${formData.imageUrl}`} alt="preview" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-color)' }} />
                   </div>
                 )}
               </div>
