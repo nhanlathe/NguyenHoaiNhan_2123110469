@@ -21,7 +21,10 @@ public class AppDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; }
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Coupon> Coupons { get; set; }
+    public DbSet<CustomerCoupon> CustomerCoupons { get; set; }
     public DbSet<Wishlist> Wishlists { get; set; }
+    public DbSet<SupportRequest> SupportRequests { get; set; }
+    public DbSet<SupportMessage> SupportMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

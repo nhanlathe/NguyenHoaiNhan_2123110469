@@ -1,4 +1,5 @@
 using Loyalty.Data;
+using Loyalty.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -55,5 +56,43 @@ public class AdminController : ControllerBase
             TotalStampsRedeemed = totalStampsRedeemed,
             MembersByTier = totalTiers
         });
+    }
+
+    [HttpGet("users")]
+    public async Task<IActionResult> GetStaffUsers()
+    {
+        var users = await _context.AppUsers
+            .Where(u => u.Role == "Admin" || u.Role == "Staff")
+            .OrderBy(u => u.Role)
+            .ToListAsync();
+        return Ok(users);
+    }
+
+    [HttpPut("users/{id}")]
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] AppUser updatedUser)
+    {
+        var user = await _context.AppUsers.FindAsync(id);
+        if (user == null) return NotFound();
+
+        user.FullName = updatedUser.FullName;
+        user.Role = updatedUser.Role;
+        if (!string.IsNullOrEmpty(updatedUser.Password))
+        {
+            user.Password = updatedUser.Password;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(user);
+    }
+
+    [HttpDelete("users/{id}")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        var user = await _context.AppUsers.FindAsync(id);
+        if (user == null) return NotFound();
+
+        _context.AppUsers.Remove(user);
+        await _context.SaveChangesAsync();
+        return Ok(new { Message = "Đã gỡ quyền truy cập" });
     }
 }

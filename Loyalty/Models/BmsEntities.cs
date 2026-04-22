@@ -17,12 +17,14 @@ public class Product
     [Required, Column(TypeName = "decimal(18,2)")]
     public decimal BasePrice { get; set; }
     [Required, StringLength(100)]
-    public string Category { get; set; } // Sách, Dụng cụ học tập, Sách luyện đề, v.v.
+    public string Department { get; set; } // Sách, Văn phòng phẩm, Quà tặng/Đồ chơi
+    [Required, StringLength(100)]
+    public string Category { get; set; } // Phân loại cấp 1 (Category)
     public string? ImageUrl { get; set; }
     public bool IsVirtual { get; set; } = false;
 
-    public ProductMetadata Metadata { get; set; }
-    public Inventory Inventory { get; set; }
+    public ProductMetadata? Metadata { get; set; }
+    public Inventory? Inventory { get; set; }
 }
 
 public class ProductMetadata
@@ -70,14 +72,18 @@ public class Customer
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
     
-    public byte[] PhoneEncrypted { get; set; }
-    public byte[] EmailEncrypted { get; set; }
+    public byte[]? PhoneEncrypted { get; set; }
+    public byte[]? EmailEncrypted { get; set; }
     
     [StringLength(100)]
-    public string Persona { get; set; } // Enterprise, School, Grade
+    public string Persona { get; set; } // Student, Parent, Office
+
+    public string? PersonaDetailJson { get; set; } // Store { School: '...', TaxId: '...' }
+    public string? PhoneNumber { get; set; } // For loyalty lookup
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    public Guid? UserId { get; set; } // Link to AppUser.Id
     public LoyaltyProfile Profile { get; set; }
 }
 
@@ -124,5 +130,6 @@ public class AppUser
     [Required, StringLength(50)]
     public string Role { get; set; } // Admin, Staff, Customer
     public string FullName { get; set; }
+    public string? PhoneNumber { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

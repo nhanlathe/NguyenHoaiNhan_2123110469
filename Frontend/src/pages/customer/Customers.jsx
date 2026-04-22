@@ -17,15 +17,6 @@ export default function Customers() {
     }
   };
 
-  const seedCustomer = async () => {
-    try {
-      await apiClient.post('/Customers/seed-test-customer?phone=0987654321');
-      fetchCustomers();
-    } catch (err) {
-      alert("Lỗi viết thư mời");
-    }
-  };
-
   const handleTierChange = async (id, newTier) => {
     if (newTier) {
       try {
@@ -37,30 +28,50 @@ export default function Customers() {
     }
   };
 
+  const translatePersona = (p) => {
+    const map = { 'Student': 'Học sinh/SV', 'Parent': 'Phụ huynh', 'Office': 'Văn phòng/DN' };
+    return map[p] || p;
+  };
+
+  const renderDetails = (json) => {
+    if (!json) return '-';
+    try {
+      const d = JSON.parse(json);
+      return Object.entries(d).map(([k, v]) => `${k}: ${v}`).join(', ');
+    } catch { return json; }
+  };
+
   return (
     <div className="animate-fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Thành Viên Thân Thiết</h2>
-        <button className="btn btn-primary" onClick={seedCustomer}>+ Viết Thẻ Bài Thử Nghiệm</button>
+        <h2>Thành Viên Thân Thiết (Dữ Liệu Thật)</h2>
       </div>
 
       <table>
         <thead>
           <tr>
             <th>Phiếu ID</th>
-            <th>Diễn Âm (SĐT)</th>
+            <th>SĐT Thành Viên</th>
+            <th>Chân Dung</th>
+            <th>Chi Tiết Phân Khúc</th>
             <th>Tước Hiệu</th>
             <th>Điểm Phúc Lợi</th>
-            <th>Hành Động</th>
+            <th>Thay Đổi Hạng</th>
           </tr>
         </thead>
         <tbody>
           {customers.map(c => (
             <tr key={c.id}>
-              <td><span style={{ fontFamily: 'monospace' }}>{c.id.substring(0,8)}...</span></td>
-              <td>{c.phoneDecrypted || '***'}</td>
+              <td><span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{c.id.substring(0,8)}</span></td>
+              <td style={{ fontWeight: 600 }}>{c.phone}</td>
               <td>
-                <span className={`badge badge-${c.tier?.toLowerCase() === 'gold' ? 'gold' : 'silver'}`}>
+                <span className="badge badge-silver" style={{ fontSize: '0.8rem' }}>
+                  {translatePersona(c.persona)}
+                </span>
+              </td>
+              <td style={{ fontSize: '0.85rem', color: '#5d4037' }}>{renderDetails(c.personaDetailJson)}</td>
+              <td>
+                <span className={`badge badge-${c.tier?.toLowerCase() === 'gold' ? 'gold' : (c.tier?.toLowerCase() === 'diamond' ? 'gold' : 'silver')}`}>
                   {c.tier}
                 </span>
               </td>
@@ -68,7 +79,7 @@ export default function Customers() {
               <td>
                 <select 
                   className="input-field" 
-                  style={{ padding: '0.3rem', width: 'auto' }}
+                  style={{ padding: '0.3rem', width: 'auto', marginBottom: 0 }}
                   value={c.tier || 'Member'} 
                   onChange={(e) => handleTierChange(c.id, e.target.value)}
                 >
@@ -80,7 +91,7 @@ export default function Customers() {
               </td>
             </tr>
           ))}
-          {customers.length === 0 && <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem' }}>Chưa ai vãng lai đăng ký thẻ.</td></tr>}
+          {customers.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>Chưa có ai đăng ký thành viên thật.</td></tr>}
         </tbody>
       </table>
     </div>

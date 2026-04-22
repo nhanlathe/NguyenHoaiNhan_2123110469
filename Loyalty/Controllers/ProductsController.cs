@@ -25,25 +25,44 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest req)
     {
-        var product = await _repository.CreateProductAsync(req);
-        return Ok(new { ProductId = product.Id, Message = "Created successfully" });
+        try 
+        {
+            var product = await _repository.CreateProductAsync(req);
+            return Ok(new { ProductId = product.Id, Message = "Created successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Title = "Lỗi hệ thống", Detail = ex.InnerException?.Message ?? ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] CreateProductRequest req)
     {
-        var product = await _repository.UpdateProductAsync(id, req);
-        if (product == null) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
-
-        return Ok(new { Message = "Sản phẩm đã được cập nhật (PUT)" });
+        try 
+        {
+            var product = await _repository.UpdateProductAsync(id, req);
+            if (product == null) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
+            return Ok(new { Message = "Sản phẩm đã được cập nhật (PUT)" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Title = "Lỗi cập nhật", Detail = ex.InnerException?.Message ?? ex.Message });
+        }
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProduct(Guid id)
     {
-        var success = await _repository.DeleteProductAsync(id);
-        if (!success) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
-
-        return Ok(new { Message = "Sản phẩm đã bị xóa (DELETE)" });
+        try 
+        {
+            var success = await _repository.DeleteProductAsync(id);
+            if (!success) return NotFound(new { Error = "Không tìm thấy sản phẩm" });
+            return Ok(new { Message = "Sản phẩm đã bị xóa (DELETE)" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Title = "Lỗi xóa sản phẩm", Detail = ex.InnerException?.Message ?? ex.Message });
+        }
     }
 }

@@ -1,4 +1,5 @@
 using Loyalty.Repositories;
+using Loyalty.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Loyalty.Controllers;
@@ -8,10 +9,12 @@ namespace Loyalty.Controllers;
 public class CustomersController : ControllerBase
 {
     private readonly ICustomerRepository _repository;
+    private readonly AppDbContext _context;
 
-    public CustomersController(ICustomerRepository repository)
+    public CustomersController(ICustomerRepository repository, AppDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     [HttpGet]
@@ -21,12 +24,23 @@ public class CustomersController : ControllerBase
         return Ok(customers);
     }
 
-    [HttpPost("seed-test-customer")]
-    public async Task<IActionResult> SeedTestCustomer([FromQuery] string phone = "0961234567")
+    [HttpGet("my-profile/{userId}")]
+    public async Task<IActionResult> GetMyProfile(Guid userId)
     {
-        var result = await _repository.SeedTestCustomerAsync(phone);
-        if (!result) return Ok("Khách hàng đã tồn tại");
-        return Ok($"Khách hàng {phone} đã được seed thành công với bản ghi Gold Tier!");
+        var user = await _context.AppUsers.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        var customers = await _repository.GetAllCustomersAsync();
+        
+        // Find by UserId or Phone
+        var profile = customers.FirstOrDefault(c => {
+            var cUserId = (Guid?)c.GetType().GetProperty("UserId")?.GetValue(c);
+            var cPhone = (string)c.GetType().GetProperty("Phone")?.GetValue(c);
+            return cUserId == userId || (cPhone != null && cPhone == user.PhoneNumber);
+        });
+        
+        if (profile == null) return NotFound("Chưa có hồ sơ Loyalty");
+        return Ok(profile);
     }
 
     [HttpPut("{id}/tier")]

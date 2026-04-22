@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useAlert } from '../../context/AlertContext';
 import apiClient from '../../api/apiClient';
+import BookCover from '../../components/BookCover';
 
 export default function POS() {
+  const { showConfirm } = useAlert();
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [redeemPoints, setRedeemPoints] = useState(0);
+  const [redeemDiscount, setRedeemDiscount] = useState(0);
 
   useEffect(() => {
     apiClient.get('/Products').then(res => setProducts(res.data)).catch(console.error);
@@ -17,7 +22,15 @@ export default function POS() {
       if (existing) {
         return prev.map(item => item.productId === p.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      return [...prev, { productId: p.id, name: p.name, price: p.basePrice, quantity: 1, isVirtual: p.isVirtual }];
+      return [...prev, { 
+        productId: p.id, 
+        name: p.name, 
+        price: p.basePrice, 
+        quantity: 1, 
+        isVirtual: p.isVirtual,
+        category: p.category,
+        department: p.department
+      }];
     });
   };
 
@@ -29,51 +42,89 @@ export default function POS() {
       const res = await apiClient.post('/Orders/checkout', {
         phoneRaw: phone,
         totalAmount,
+        redeemPoints,
         items: cart.map(c => ({
           productId: c.productId,
           quantity: c.quantity,
           price: c.price,
-          category: 'Book', // Mock category
+          category: c.category,
           isVirtual: c.isVirtual
         }))
       });
-      setMessage(`Giao dịch thành công! ${res.data.DiscountAppied > 0 ? `Đã áp dụng giảm bạc: ${res.data.DiscountAppied} ₫` : ''}`);
+      setMessage(`Giao dịch thành công! ${res.data.DiscountApplied > 0 ? `Đã áp dụng ưu đãi hạng thẻ: -${res.data.DiscountApplied.toLocaleString()} ₫.` : ''} ${redeemDiscount > 0 ? `Đổi điểm: -${redeemDiscount.toLocaleString()} ₫.` : ''}`);
       setCart([]);
       setPhone('');
+      setRedeemPoints(0);
+      setRedeemDiscount(0);
     } catch (err) {
       setMessage(err.response?.data?.Error || 'Có lỗi khi tính toán ngân lượng');
     }
   };
 
   const handleRedeem = async () => {
-    // For simplicity just mocking redeem if they provide customer Id. Let's do phone-based dash lookup first.
     if (!phone) return alert("Nhập số điện thoại khách!");
+    if (totalAmount === 0) return alert("Cần có sản phẩm trong giỏ để kiểm tra đổi điểm!");
+    
     try {
       const dash = await apiClient.get(`/Loyalty/dashboard?phoneRaw=${phone}`);
       if(dash.data) {
-        const wantsRedeem = confirm(`Khách đang có ${dash.data.PointBalance} Điểm Phúc Lợi. Đổi quà trị giá 50,000đ (Chi phí 500 điểm)?`);
+        const points = dash.data.pointBalance;
+        if (points <= 0) {
+            setMessage(`Khách hạng ${dash.data.currentTier}. Chưa có điểm phúc lợi.`);
+            return;
+        }
+
+        const pointToVnd = 100; // 1 điểm = 100 VNĐ
+        const maxDiscount = totalAmount * 0.2; // Tối đa 20% đơn hàng
+        const maxPointsCanUse = Math.min(points, Math.floor(maxDiscount / pointToVnd));
+        
+        if (maxPointsCanUse <= 0) {
+            setMessage(`Khách có ${points} điểm, nhưng không đủ để giảm giá cho đơn này.`);
+            return;
+        }
+
+        const discountAmount = maxPointsCanUse * pointToVnd;
+        const wantsRedeem = await showConfirm(`Khách đang có ${points} Điểm. Dùng ${maxPointsCanUse} điểm để giảm ${discountAmount.toLocaleString()} ₫ (tối đa 20%) cho đơn này không?`);
+        
         if (wantsRedeem) {
-            // Need Customer ID! Oh, wait, dashboard doesn't return Customer ID, just stats.
-            setMessage("Tính năng đổi quà từ quầy đang bảo trì. Vui lòng thanh toán tích điểm trước.");
+            setRedeemPoints(maxPointsCanUse);
+            setRedeemDiscount(discountAmount);
+            setMessage(`Đã chọn dùng ${maxPointsCanUse} điểm. Sẽ giảm ${discountAmount.toLocaleString()} ₫ khi thanh toán.`);
+        } else {
+            setMessage(`Khách hạng ${dash.data.currentTier}. Đã giữ lại ${points} điểm.`);
         }
       }
     } catch (err) {
-      setMessage("Không tìm thấy số thẻ này trong cơ sở dữ liệu.");
+      setMessage("Không tìm thấy số thẻ này trong hệ thống.");
     }
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', gap: '2rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', gap: '1.5rem' }}>
       <div style={{ flex: 2 }}>
         <h2>Kệ Trưng Bày (Bán Hàng)</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
-          {products.map(p => (
-            <div key={p.id} className="glass-panel" style={{ cursor: 'pointer', transition: '0.2s' }} onClick={() => addToCart(p)}>
-              <div style={{ fontWeight: 'bold' }}>{p.name}</div>
-              <div style={{ fontStyle: 'italic', marginBottom: '0.5rem', fontSize: '0.9rem' }}>{p.sku}</div>
-              <div style={{ color: 'var(--primary)' }}>{p.basePrice.toLocaleString()} ₫</div>
+          {products.map(p => {
+            let author = '';
+            try {
+              const meta = typeof p.metadataJson === 'string' ? JSON.parse(p.metadataJson) : (p.metadataJson || {});
+              author = meta['Tác giả'] || meta['Tác Giả'] || meta['Author'] || '';
+            } catch (e) {}
+            return (
+            <div key={p.id} className="glass-panel" style={{ cursor: 'pointer', transition: '0.2s', position: 'relative', overflow: 'hidden', display: 'flex', gap: '0.75rem', alignItems: 'center' }} onClick={() => addToCart(p)}>
+              <BookCover name={p.name} category={p.category} author={author} size={50} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div style={{ fontWeight: 'bold' }}>{p.name}</div>
+                  {p.isVirtual && <span className="badge badge-silver" style={{ fontSize: '0.6rem' }}>Combo</span>}
+                </div>
+                <div style={{ fontStyle: 'italic', marginBottom: '0.5rem', fontSize: '0.8rem', color: '#666' }}>{p.sku} | {p.uoM}</div>
+                <div style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{p.basePrice.toLocaleString()} ₫</div>
+                <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>{p.department} - {p.category}</div>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       
@@ -89,7 +140,7 @@ export default function POS() {
             </div>
           </div>
 
-          <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '1rem' }}>
+          <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem' }}>
             {cart.map((c, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.95rem' }}>
                 <div>{c.quantity}x {c.name.substring(0, 15)}...</div>
@@ -98,12 +149,19 @@ export default function POS() {
             ))}
           </div>
 
-          <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <span>Tổng Giá</span>
             <span>{totalAmount.toLocaleString()} ₫</span>
           </div>
 
-          {message && <div style={{ color: message.includes('lỗi') ? 'var(--danger)' : 'var(--success)', marginBottom: '1rem', fontStyle: 'italic', fontWeight: 'bold' }}>{message}</div>}
+          {redeemDiscount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--success)', fontWeight: 'bold', marginBottom: '1rem' }}>
+              <span>Dùng {redeemPoints} điểm:</span>
+              <span>-{redeemDiscount.toLocaleString()} ₫</span>
+            </div>
+          )}
+
+          {message && <div style={{ color: message.includes('lỗi') || message.includes('Không tìm thấy') ? 'var(--danger)' : 'var(--success)', marginBottom: '1rem', fontStyle: 'italic', fontWeight: 'bold' }}>{message}</div>}
 
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button className="btn btn-primary" style={{ flex: 1, padding: '1rem' }} onClick={handleCheckout}>

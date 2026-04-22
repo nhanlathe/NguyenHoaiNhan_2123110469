@@ -40,6 +40,9 @@ namespace Loyalty.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -60,6 +63,10 @@ namespace Loyalty.Migrations
                     b.Property<string>("Code")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18,2)");
 
@@ -68,6 +75,10 @@ namespace Loyalty.Migrations
 
                     b.Property<bool>("IsPercentage")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UsageCount")
                         .HasColumnType("int");
@@ -90,7 +101,6 @@ namespace Loyalty.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<byte[]>("EmailEncrypted")
-                        .IsRequired()
                         .HasColumnType("varbinary(max)");
 
                     b.Property<string>("Persona")
@@ -98,13 +108,47 @@ namespace Loyalty.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("PersonaDetailJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<byte[]>("PhoneEncrypted")
-                        .IsRequired()
                         .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("Loyalty.Models.CustomerCoupon", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CouponCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CouponCode");
+
+                    b.ToTable("CustomerCoupons");
                 });
 
             modelBuilder.Entity("Loyalty.Models.Inventory", b =>
@@ -214,12 +258,19 @@ namespace Loyalty.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("VnPayTransactionId")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -240,6 +291,9 @@ namespace Loyalty.Migrations
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ProductName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -264,6 +318,14 @@ namespace Loyalty.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Department")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsVirtual")
                         .HasColumnType("bit");
@@ -336,6 +398,69 @@ namespace Loyalty.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("Loyalty.Models.SupportMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SenderType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("SupportRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SupportRequestId");
+
+                    b.ToTable("SupportMessages");
+                });
+
+            modelBuilder.Entity("Loyalty.Models.SupportRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsReadByAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsReadByCustomer")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("SupportRequests");
+                });
+
             modelBuilder.Entity("Loyalty.Models.VirtualSkuLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -378,6 +503,17 @@ namespace Loyalty.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Wishlists");
+                });
+
+            modelBuilder.Entity("Loyalty.Models.CustomerCoupon", b =>
+                {
+                    b.HasOne("Loyalty.Models.Coupon", "Coupon")
+                        .WithMany()
+                        .HasForeignKey("CouponCode")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Coupon");
                 });
 
             modelBuilder.Entity("Loyalty.Models.Inventory", b =>
@@ -435,6 +571,28 @@ namespace Loyalty.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Loyalty.Models.SupportMessage", b =>
+                {
+                    b.HasOne("Loyalty.Models.SupportRequest", "SupportRequest")
+                        .WithMany("Messages")
+                        .HasForeignKey("SupportRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SupportRequest");
+                });
+
+            modelBuilder.Entity("Loyalty.Models.SupportRequest", b =>
+                {
+                    b.HasOne("Loyalty.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("Loyalty.Models.VirtualSkuLink", b =>
                 {
                     b.HasOne("Loyalty.Models.Product", "Combo")
@@ -467,11 +625,14 @@ namespace Loyalty.Migrations
 
             modelBuilder.Entity("Loyalty.Models.Product", b =>
                 {
-                    b.Navigation("Inventory")
-                        .IsRequired();
+                    b.Navigation("Inventory");
 
-                    b.Navigation("Metadata")
-                        .IsRequired();
+                    b.Navigation("Metadata");
+                });
+
+            modelBuilder.Entity("Loyalty.Models.SupportRequest", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

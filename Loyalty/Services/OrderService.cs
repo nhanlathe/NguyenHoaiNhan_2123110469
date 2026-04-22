@@ -41,14 +41,14 @@ public class OrderService
         {
             int multiplier = 1;
             
-            // Tháng 8-9: x2 điểm cho Dụng cụ học tập
-            if (item.Category == "Dụng cụ học tập" && (currentMonth == 8 || currentMonth == 9))
+            // Tháng 8-9: x2 điểm cho Tập vở & Dụng cụ vẽ
+            if ((item.Category == "Tập vở" || item.Category == "Dụng cụ vẽ") && (currentMonth == 8 || currentMonth == 9))
             {
                 multiplier = 2;
             }
 
-            // Tháng 5-6: Sách luyện đề giảm 20%
-            if (item.Category == "Sách luyện đề" && (currentMonth == 5 || currentMonth == 6))
+            // Tháng 5-6: Sách Giáo khoa giảm 20%
+            if (item.Category == "Giáo khoa" && (currentMonth == 5 || currentMonth == 6))
             {
                 totalDiscount += item.Price * item.Quantity * 0.20m;
             }
