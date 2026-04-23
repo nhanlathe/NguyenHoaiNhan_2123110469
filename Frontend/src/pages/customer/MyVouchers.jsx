@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function MyVouchers() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +27,9 @@ export default function MyVouchers() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
+      <button onClick={() => navigate('/profile')} className="btn btn-outline" style={{ borderColor: 'transparent', padding: '0.5rem 0', marginBottom: '1rem' }}>
+        ← Quay lại hồ sơ
+      </button>
       <h2 style={{ marginBottom: '2rem' }}>Ưu Đãi Của Tôi</h2>
       
       {vouchers.length === 0 ? (

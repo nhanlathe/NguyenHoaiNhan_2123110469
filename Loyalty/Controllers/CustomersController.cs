@@ -1,6 +1,9 @@
 using Loyalty.Repositories;
 using Loyalty.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Loyalty.Models;
+using Loyalty.Utils;
 
 namespace Loyalty.Controllers;
 
@@ -30,17 +33,35 @@ public class CustomersController : ControllerBase
         var user = await _context.AppUsers.FindAsync(userId);
         if (user == null) return NotFound();
 
-        var customers = await _repository.GetAllCustomersAsync();
-        
-        // Find by UserId or Phone
-        var profile = customers.FirstOrDefault(c => {
-            var cUserId = (Guid?)c.GetType().GetProperty("UserId")?.GetValue(c);
-            var cPhone = (string)c.GetType().GetProperty("Phone")?.GetValue(c);
-            return cUserId == userId || (cPhone != null && cPhone == user.PhoneNumber);
-        });
-        
-        if (profile == null) return NotFound("Chưa có hồ sơ Loyalty");
-        return Ok(profile);
+        var customer = await _context.Customers
+            .Include(c => c.Profile)
+            .FirstOrDefaultAsync(c => c.UserId == userId || (c.PhoneNumber != null && c.PhoneNumber == user.PhoneNumber));
+            
+        if (customer == null) 
+        {
+            customer = new Customer
+            {
+                UserId = user.Id,
+                Persona = "Member",
+                PhoneNumber = user.PhoneNumber,
+                Profile = new LoyaltyProfile { Tier = "Member" }
+            };
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+        }
+
+        var profileDto = new {
+            customer.Id,
+            customer.UserId,
+            Phone = customer.PhoneNumber ?? (customer.PhoneEncrypted != null ? EncryptionUtil.Decrypt(customer.PhoneEncrypted) : "N/A"),
+            customer.Persona,
+            customer.PersonaDetailJson,
+            Tier = customer.Profile?.Tier,
+            PointBalance = customer.Profile?.PointBalance,
+            customer.CreatedAt
+        };
+
+        return Ok(profileDto);
     }
 
     [HttpPut("{id}/tier")]
@@ -49,6 +70,14 @@ public class CustomersController : ControllerBase
         var result = await _repository.UpdateTierAsync(id, newTier);
         if (!result) return NotFound(new { Error = "Không tìm thấy hồ sơ Loyalty" });
         return Ok(new { Message = $"Đã nâng/hạ hạng (PUT) thành {newTier}" });
+    }
+
+    [HttpPut("{id}/points")]
+    public async Task<IActionResult> UpdatePoints(Guid id, [FromQuery] decimal newPoints)
+    {
+        var result = await _repository.UpdatePointsAsync(id, newPoints);
+        if (!result) return NotFound(new { Error = "Không tìm thấy hồ sơ Loyalty" });
+        return Ok(new { Message = $"Đã cập nhật điểm thành {newPoints}" });
     }
 
     [HttpDelete("{id}")]

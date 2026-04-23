@@ -28,6 +28,17 @@ export default function Customers() {
     }
   };
 
+  const handlePointsChange = async (id, newPoints) => {
+    if (newPoints >= 0) {
+      try {
+        await apiClient.put(`/Customers/${id}/points?newPoints=${newPoints}`);
+        fetchCustomers();
+      } catch (err) {
+        alert("Lỗi cập nhật điểm");
+      }
+    }
+  };
+
   const translatePersona = (p) => {
     const map = { 'Student': 'Học sinh/SV', 'Parent': 'Phụ huynh', 'Office': 'Văn phòng/DN' };
     return map[p] || p;
@@ -51,6 +62,7 @@ export default function Customers() {
         <thead>
           <tr>
             <th>Phiếu ID</th>
+            <th>Tên Thành Viên</th>
             <th>SĐT Thành Viên</th>
             <th>Chân Dung</th>
             <th>Chi Tiết Phân Khúc</th>
@@ -63,6 +75,7 @@ export default function Customers() {
           {customers.map(c => (
             <tr key={c.id}>
               <td><span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{c.id.substring(0,8)}</span></td>
+              <td style={{ fontWeight: 600 }}>{c.fullName}</td>
               <td style={{ fontWeight: 600 }}>{c.phone}</td>
               <td>
                 <span className="badge badge-silver" style={{ fontSize: '0.8rem' }}>
@@ -75,7 +88,24 @@ export default function Customers() {
                   {c.tier}
                 </span>
               </td>
-              <td style={{ fontWeight: 'bold' }}>{c.pointBalance}</td>
+              <td style={{ fontWeight: 'bold' }}>
+                <input 
+                  type="number" 
+                  className="input-field"
+                  style={{ width: '80px', padding: '0.3rem', marginBottom: 0, fontWeight: 'bold' }}
+                  defaultValue={c.pointBalance}
+                  onBlur={(e) => {
+                    const val = Number(e.target.value);
+                    if (val !== c.pointBalance && val >= 0) handlePointsChange(c.id, val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.target.blur();
+                    }
+                  }}
+                  min="0"
+                />
+              </td>
               <td>
                 <select 
                   className="input-field" 
@@ -91,7 +121,7 @@ export default function Customers() {
               </td>
             </tr>
           ))}
-          {customers.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>Chưa có ai đăng ký thành viên thật.</td></tr>}
+          {customers.length === 0 && <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>Chưa có ai đăng ký thành viên thật.</td></tr>}
         </tbody>
       </table>
     </div>

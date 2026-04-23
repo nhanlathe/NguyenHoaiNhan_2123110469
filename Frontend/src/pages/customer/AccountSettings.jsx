@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function AccountSettings() {
   const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [phone, setPhone] = useState(user?.phoneNumber || '');
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,9 @@ export default function AccountSettings() {
   return (
     <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem' }}>
       <div className="glass-panel" style={{ padding: '2.5rem' }}>
+        <button onClick={() => navigate('/profile')} className="btn btn-outline" style={{ borderColor: 'transparent', padding: '0.5rem 0', marginBottom: '1rem' }}>
+          ← Quay lại hồ sơ
+        </button>
         <h2 style={{ marginBottom: '2rem' }}>Cài Đặt Tài Khoản</h2>
         
         {message && (

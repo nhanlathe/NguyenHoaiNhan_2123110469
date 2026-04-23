@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../api/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function OrderHistory() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +27,9 @@ export default function OrderHistory() {
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
+      <button onClick={() => navigate('/profile')} className="btn btn-outline" style={{ borderColor: 'transparent', padding: '0.5rem 0', marginBottom: '1rem' }}>
+        ← Quay lại hồ sơ
+      </button>
       <h2 style={{ marginBottom: '2rem' }}>Lịch Sử Đơn Hàng</h2>
       
       {orders.length === 0 ? (
