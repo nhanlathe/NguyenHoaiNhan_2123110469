@@ -55,7 +55,7 @@ export default function Customers() {
   return (
     <div className="animate-fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Thành Viên Thân Thiết (Dữ Liệu Thật)</h2>
+        <h2>Thành Viên Thân Thiết</h2>
       </div>
 
       <table>
@@ -74,7 +74,7 @@ export default function Customers() {
         <tbody>
           {customers.map(c => (
             <tr key={c.id}>
-              <td><span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{c.id.substring(0,8)}</span></td>
+              <td><span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{c.id.substring(0, 8)}</span></td>
               <td style={{ fontWeight: 600 }}>{c.fullName}</td>
               <td style={{ fontWeight: 600 }}>{c.phone}</td>
               <td>
@@ -89,8 +89,8 @@ export default function Customers() {
                 </span>
               </td>
               <td style={{ fontWeight: 'bold' }}>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="input-field"
                   style={{ width: '80px', padding: '0.3rem', marginBottom: 0, fontWeight: 'bold' }}
                   defaultValue={c.pointBalance}
@@ -107,10 +107,10 @@ export default function Customers() {
                 />
               </td>
               <td>
-                <select 
-                  className="input-field" 
+                <select
+                  className="input-field"
                   style={{ padding: '0.3rem', width: 'auto', marginBottom: 0 }}
-                  value={c.tier || 'Member'} 
+                  value={c.tier || 'Member'}
                   onChange={(e) => handleTierChange(c.id, e.target.value)}
                 >
                   <option value="Member">Khách Thường (Member)</option>
